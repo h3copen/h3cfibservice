@@ -1,0 +1,12 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "ydRv3wf7aSQD6zSil20LaWzolE4=",
+			"path": "github.com/facebook/fbthrift-go",
+			"revision": ""
+		}
+	],
+	"rootPath": "github.com/h3copen/h3cfibservice"
+}
