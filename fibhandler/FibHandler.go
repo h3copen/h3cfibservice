@@ -12,7 +12,7 @@ import (
 )
 
 const defaultTimeout uint = 20
-const localIfName string = "GE0_0_1"
+// const localIfName string = "GE0_0_1"
 
 type FibHandler struct {
 	timeout    uint //timeout value, del route if counter > timeout
@@ -78,7 +78,6 @@ func (fh *FibHandler)  AddUnicastRoute( clientId int16, route *ipprefix.UnicastR
     var nextIp string = ""
 
     routeLen := len(route.Dest.PrefixAddress.Addr)   
-    // preIfName := route.Dest.PrefixAddress.IfName 
     prefixLength := route.Dest.PrefixLength    
 
     if routeLen == 4 {
@@ -102,7 +101,8 @@ func (fh *FibHandler)  AddUnicastRoute( clientId int16, route *ipprefix.UnicastR
         }else{
             nextIp = ipv6Convert(route.Nexthops[i].Addr)
         } 
-           
+        nextIfName := route.Nexthops[i].IfName        
+
         mTRouteMsg.Route[0].Path[i] = new(t_openr.TRoutePath)
         mTRouteMsg.Route[0].Path[i].NexthopAddress = new(t_openr.TAddress)
 
@@ -113,7 +113,7 @@ func (fh *FibHandler)  AddUnicastRoute( clientId int16, route *ipprefix.UnicastR
         mTRouteMsg.Route[0].PrefixAddress.Address = preIp
         mTRouteMsg.Route[0].PrefixLen = uint32 (prefixLength)
         mTRouteMsg.Route[0].Preference = 0
-        mTRouteMsg.Route[0].Path[i].LocalIfName = localIfName
+        mTRouteMsg.Route[0].Path[i].LocalIfName = *nextIfName
         mTRouteMsg.Route[0].Path[i].NexthopAddress.Type = typeIp
         mTRouteMsg.Route[0].Path[i].NexthopAddress.Address = nextIp
         mTRouteMsg.Route[0].Path[i].Cost = 0
@@ -140,7 +140,8 @@ func (fh *FibHandler)  DeleteUnicastRoute( clientId int16, prefix *ipprefix.IpPr
 
     routeLen := len(prefix.PrefixAddress.Addr)
     
-    prefixLength := prefix.PrefixLength    
+    prefixLength := prefix.PrefixLength  
+    // preIfName := prefix.PrefixAddress.IfName  
     
     var mTRouteMsg t_openr.TRouteMsg
     var typeIp t_openr.TAddrType
@@ -157,9 +158,9 @@ func (fh *FibHandler)  DeleteUnicastRoute( clientId int16, prefix *ipprefix.IpPr
     mTRouteMsg.Route = make([]*t_openr.TUnicstRoute, 1)
     mTRouteMsg.Route[0] = new(t_openr.TUnicstRoute)
     mTRouteMsg.Route[0].PrefixAddress = new(t_openr.TAddress)
-    mTRouteMsg.Route[0].Path = make([]*t_openr.TRoutePath, 1)
-    mTRouteMsg.Route[0].Path[0] = new(t_openr.TRoutePath)
-    mTRouteMsg.Route[0].Path[0].NexthopAddress = new(t_openr.TAddress)
+    // mTRouteMsg.Route[0].Path = make([]*t_openr.TRoutePath, 1)
+    // mTRouteMsg.Route[0].Path[0] = new(t_openr.TRoutePath)
+    // mTRouteMsg.Route[0].Path[0].NexthopAddress = new(t_openr.TAddress)
 
     mTRouteMsg.IndexOfRouteMsg = 1
     mTRouteMsg.EnOperType = 3
@@ -168,10 +169,10 @@ func (fh *FibHandler)  DeleteUnicastRoute( clientId int16, prefix *ipprefix.IpPr
     mTRouteMsg.Route[0].PrefixAddress.Address = preIp
     mTRouteMsg.Route[0].PrefixLen = uint32 (prefixLength)
     mTRouteMsg.Route[0].Preference = 0
-    mTRouteMsg.Route[0].Path[0].LocalIfName = localIfName
-    // mTRouteMsg.Route[0].Path[0].NexthopAddress.Type = typeIp
-    // mTRouteMsg.Route[0].Path[0].NexthopAddress.Address = ""
-    mTRouteMsg.Route[0].Path[0].Cost = 0
+    // mTRouteMsg.Route[0].Path[0].LocalIfName = "preIfName"
+    // mTRouteMsg.Route[0].Path[0].NexthopAddress.Type = 100
+    // mTRouteMsg.Route[0].Path[0].NexthopAddress.Address = "192.168.80.1"
+    // mTRouteMsg.Route[0].Path[0].Cost = 0
 
     data := preIp
     if(isWrite){
@@ -208,9 +209,6 @@ func (fh *FibHandler)  AddUnicastRoutes( clientId int16, routes []*ipprefix.Unic
         mTRouteMsg.Route[i].Path = make([]*t_openr.TRoutePath, len(routes[i].Nexthops))    
         prefixLength := routes[i].Dest.PrefixLength   
 
-
-        data = data + preIp +"\n"
-
         if routeLen == 4{
             typeIp = t_openr.TAddrType_T_V4
             preIp = strings.Replace(strings.Trim(fmt.Sprint((*(*(routes[i].Dest)).PrefixAddress).Addr), "[]"), " ", ".", -1)
@@ -219,6 +217,8 @@ func (fh *FibHandler)  AddUnicastRoutes( clientId int16, routes []*ipprefix.Unic
             preIp = ipv6Convert(routes[i].Dest.PrefixAddress.Addr)
         }    
 
+        data = data + preIp +"\n"
+
         for j := 0; j < len(routes[i].Nexthops); j++ {
 
             if routeLen == 4 {
@@ -226,7 +226,8 @@ func (fh *FibHandler)  AddUnicastRoutes( clientId int16, routes []*ipprefix.Unic
             }else{
                 nextIp = ipv6Convert(routes[i].Nexthops[j].Addr)
             } 
-            
+            nextIfName := routes[i].Nexthops[j].IfName
+
             mTRouteMsg.Route[i].Path[j] = new(t_openr.TRoutePath)
             mTRouteMsg.Route[i].Path[j].NexthopAddress = new(t_openr.TAddress)
 
@@ -237,7 +238,7 @@ func (fh *FibHandler)  AddUnicastRoutes( clientId int16, routes []*ipprefix.Unic
             mTRouteMsg.Route[i].PrefixAddress.Address = preIp
             mTRouteMsg.Route[i].PrefixLen = uint32 (prefixLength)
             mTRouteMsg.Route[i].Preference = 0
-            mTRouteMsg.Route[i].Path[j].LocalIfName = localIfName
+            mTRouteMsg.Route[i].Path[j].LocalIfName = *nextIfName
             mTRouteMsg.Route[i].Path[j].NexthopAddress.Type = typeIp
             mTRouteMsg.Route[i].Path[j].NexthopAddress.Address = nextIp
             mTRouteMsg.Route[i].Path[j].Cost = 0
@@ -277,12 +278,13 @@ func (fh *FibHandler)  DeleteUnicastRoutes( clientId int16, prefixes []*ipprefix
         routeLen := len(prefixes[i].PrefixAddress.Addr)
          
         prefixLength := prefixes[i].PrefixLength
+        // preIfName := prefixes[i].PrefixAddress.IfName 
 
         mTRouteMsg.Route[i] = new(t_openr.TUnicstRoute)
         mTRouteMsg.Route[i].PrefixAddress = new(t_openr.TAddress)
-        mTRouteMsg.Route[i].Path = make([]*t_openr.TRoutePath, 1)
-        mTRouteMsg.Route[i].Path[0] = new(t_openr.TRoutePath)
-        mTRouteMsg.Route[i].Path[0].NexthopAddress = new(t_openr.TAddress)
+        // mTRouteMsg.Route[i].Path = make([]*t_openr.TRoutePath, 1)
+        // mTRouteMsg.Route[i].Path[0] = new(t_openr.TRoutePath)
+        // mTRouteMsg.Route[i].Path[0].NexthopAddress = new(t_openr.TAddress)
 
         var typeIp t_openr.TAddrType
         if routeLen == 4{
@@ -300,8 +302,8 @@ func (fh *FibHandler)  DeleteUnicastRoutes( clientId int16, prefixes []*ipprefix
         mTRouteMsg.Route[i].PrefixAddress.Address = preIp
         mTRouteMsg.Route[i].PrefixLen = uint32 (prefixLength)
         mTRouteMsg.Route[i].Preference = 0
-        mTRouteMsg.Route[i].Path[0].LocalIfName = localIfName
-        mTRouteMsg.Route[i].Path[0].Cost = 0
+        // mTRouteMsg.Route[i].Path[0].LocalIfName = preIfName
+        // mTRouteMsg.Route[i].Path[0].Cost = 0
 
         data = data + "\n\n" + preIp
     }
