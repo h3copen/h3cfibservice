@@ -305,7 +305,7 @@ func (fh *FibHandler)  DeleteUnicastRoutes( clientId int16, prefixes []*ipprefix
         // mTRouteMsg.Route[i].Path[0].LocalIfName = preIfName
         // mTRouteMsg.Route[i].Path[0].Cost = 0
 
-        data = data + "\n\n" + preIp
+        data = data + preIp + "\n\n"
     }
 
     if(isWrite){
