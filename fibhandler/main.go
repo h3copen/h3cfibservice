@@ -64,18 +64,18 @@ func SendRoute(mTRouteMsg *t_openr.TRouteMsg) (err error){
 }
 
 func init() {
-	flag.StringVar(&addr, "addr", ":60100", "Address to listen to")
+	flag.StringVar(&addr, "addr", ":60100", "Address to listen to ")
 	flag.BoolVar(&useTLS, "tls", false, "Use TLS secure transport")
 	flag.StringVar(&protocol, "p", "binary", "Specify the protocol (binary, compact, json, simplejson)")
 	flag.BoolVar(&isFramed, "framed", true, "Use framed transport")
 	flag.BoolVar(&isBuffered, "buffered", false, "Use buffered transport")
 
-	flag.StringVar(&address, "ac", "192.168.18.102", "addr to comware")
-	flag.UintVar(&port, "pc", 50051, "grpc port to comware")
-	flag.StringVar(&username, "uc", "2", "username to comware")
-	flag.StringVar(&password, "pwc", "123456", "password to comware")
-	flag.BoolVar(&isWrite, "wr", false, "write routes to txt")
-	flag.BoolVar(&isGrpc, "gc", false, "open grpc connect to comware")
+	flag.StringVar(&address, "ac", "192.168.18.102", "Address to comware")
+	flag.UintVar(&port, "pc", 50051, "Grpc port to comware")
+	flag.StringVar(&username, "uc", "2", "Username to comware")
+	flag.StringVar(&password, "pwc", "123456", "Password to comware")
+	flag.BoolVar(&isWrite, "wr", false, "Write routes to txt")
+	flag.BoolVar(&isGrpc, "ec", false, "Enable grpc connect to comware")
 }
 
 func main() {
