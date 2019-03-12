@@ -1,5 +1,5 @@
 # H3cfibservice
-OpenR FIB service by H3C, Fibservice receives the route sent by openr and sends it to the H3C device.
+OpenR FIB service by H3C, fibservice receives the route sent by OpenR and sends it to the H3C device.
 
 ## Build 
 Get into directory `/fibservice/fibhandler`. The command go build compile source file and generate the `fibhandler`. Usage of `./fibhandler -h` to view the meaning of parameters.As follows： 
