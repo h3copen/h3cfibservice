@@ -19,6 +19,8 @@ type FibHandler struct {
 	counter    uint //timeout counter
 	aliveSince int64
 	offline    bool
+    aliveSinceCnt uint
+    keepAliveCnt uint
 	status     platform.ServiceStatus
 	ticker     *time.Ticker
 }
@@ -70,7 +72,7 @@ func writeRoutesTxt(data string){
   //  - ClientId
   //  - Route
 func (fh *FibHandler)  AddUnicastRoute( clientId int16, route *ipprefix.UnicastRoute) (err error) {
-	fmt.Printf("AddUnicastRoute: \n")
+	fmt.Printf("AddUnicastRoute\n  client: %v\n  route: %v\n", clientId, route)
 
     var mTRouteMsg t_openr.TRouteMsg
     var typeIp t_openr.TAddrType
@@ -136,7 +138,7 @@ func (fh *FibHandler)  AddUnicastRoute( clientId int16, route *ipprefix.UnicastR
   //  - ClientId
   //  - Prefix
 func (fh *FibHandler)  DeleteUnicastRoute( clientId int16, prefix *ipprefix.IpPrefix) (err error) {
-	fmt.Printf("DeleteUnicastRoute: \n")
+	fmt.Printf("DeleteUnicastRoute\n  client: %v\n  prefix: %v\n", clientId, prefix)
 
     routeLen := len(prefix.PrefixAddress.Addr)
     
@@ -191,7 +193,7 @@ func (fh *FibHandler)  DeleteUnicastRoute( clientId int16, prefix *ipprefix.IpPr
   //  - ClientId
   //  - Routes
 func (fh *FibHandler)  AddUnicastRoutes( clientId int16, routes []*ipprefix.UnicastRoute) (err error) {
-	fmt.Printf("AddUnicastRoutes: \n")
+	fmt.Printf("AddUnicastRoutes\n  client: %v, route count: %v\n  routes: %v\n", clientId, len(routes), routes)
 
     numRoutes := len (routes)
     var mTRouteMsg t_openr.TRouteMsg
@@ -266,7 +268,8 @@ func (fh *FibHandler)  AddUnicastRoutes( clientId int16, routes []*ipprefix.Unic
   //  - ClientId
   //  - Prefixes
 func (fh *FibHandler)  DeleteUnicastRoutes( clientId int16, prefixes []*ipprefix.IpPrefix) (err error) {
-	fmt.Printf("DeleteUnicastRoutes: \n")
+	fmt.Printf("DeleteUnicastRoutes\n  client: %v, prefix count: %v\n  prefixes: %v\n", 
+            clientId, len(prefixes), prefixes)
 
     numRoutes := len(prefixes)
     var mTRouteMsg t_openr.TRouteMsg
@@ -323,7 +326,8 @@ func (fh *FibHandler)  DeleteUnicastRoutes( clientId int16, prefixes []*ipprefix
 //  - ClientId
 //  - Routes
 func (fh *FibHandler) SyncFib(clientId int16, routes []*ipprefix.UnicastRoute) (err error) {
-	fmt.Printf("SyncFib: \n")
+	fmt.Printf("SyncFib\n  client: %v, route count: %v\n  routes: %v\n", 
+            clientId, len(routes), routes)
 
     err = fh.AddUnicastRoutes(clientId, routes)
 
@@ -338,6 +342,7 @@ func (fh *FibHandler) SyncFib(clientId int16, routes []*ipprefix.UnicastRoute) (
 func (fh *FibHandler) PeriodicKeepAlive(clientId int16) (r int64, err error) {
 	fmt.Printf("PeriodicKeepAlive: %v, timeout: %v\n", clientId, fh.counter)
 	fh.online()
+    fh.keepAliveCnt++
 	return 0, nil
 }
 
@@ -345,6 +350,7 @@ func (fh *FibHandler) PeriodicKeepAlive(clientId int16) (r int64, err error) {
 func (fh *FibHandler) AliveSince() (r int64, err error) {
 	fmt.Printf("AliveSince: %v\n", fh.aliveSince)
 	fh.online()
+    fh.aliveSinceCnt++
 	return fh.aliveSince, nil
 }
 
@@ -375,7 +381,11 @@ func (fh *FibHandler) GetRouteTableByClient(clientId int16) (r []*ipprefix.Unica
 
 func (fh *FibHandler) online() {
 	if fh.offline {
-		fh.counter = 0
+        fmt.Printf("LastAliveSinceCount: %v, LastPeriodicKeepAliveCount\n", 
+                fh.aliveSinceCnt, fh.keepAliveCnt)
+        fh.aliveSinceCnt = 0
+        fh.keepAliveCnt = 0
 		fh.offline = false
 	}
+    fh.counter = 0
 }
