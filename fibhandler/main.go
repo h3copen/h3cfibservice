@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -24,28 +25,24 @@ var (
 
 
 var(
-	address      string = "192.168.18.102"
+	address      string = "192.168.126.132"
 	port         uint = 50051
 	username     string = "2"
 	password     string = "123456"
-	grpcSession  *sdk.GrpcSession
 	isWrite      bool
 	isGrpc       bool
+	grpcSession  *sdk.GrpcSession
+	srcTagent    t_openr.TAgentOperClient
+	srcHealth    t_openr.HealthClient
+	ctx_with_token context.Context
+	cancel context.CancelFunc
 )
 
 func SendRoute(mTRouteMsg *t_openr.TRouteMsg) (err error){
 
-	grpcSession, err = sdk.NewClient(address, port, username , password)
-	if err != nil {
-		log.Println("Failed to open session.")
-	}
-	defer grpcSession.Close()
-
-	ctx_with_token, cancel := sdk.CtxWithToken(grpcSession.Token, time.Second)
+	ctx_with_token, cancel = sdk.CtxWithToken(grpcSession.Token, time.Second*2)
 	defer cancel()
-	src := t_openr.NewTAgentOperClient(grpcSession.Conn)
-
-	stream, err := src.SyncRoutes(ctx_with_token)
+	stream, err := srcTagent.SyncRoutes(ctx_with_token)
 
 	stream.Send(mTRouteMsg)
     mTRouteMsgRsp,err := stream.Recv()
@@ -70,7 +67,7 @@ func init() {
 	flag.BoolVar(&isFramed, "framed", true, "Use framed transport")
 	flag.BoolVar(&isBuffered, "buffered", false, "Use buffered transport")
 
-	flag.StringVar(&address, "ac", "192.168.18.102", "Address to comware")
+	flag.StringVar(&address, "ac", "192.168.126.132", "Address to comware")
 	flag.UintVar(&port, "pc", 50051, "Grpc port to comware")
 	flag.StringVar(&username, "uc", "2", "Username to comware")
 	flag.StringVar(&password, "pwc", "123456", "Password to comware")
