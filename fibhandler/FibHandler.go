@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	sdk "github.com/h3copen/comwaresdk/sdk"
 )
 
 const defaultTimeout uint = 20
@@ -22,6 +23,7 @@ type FibHandler struct {
 	offline       bool
 	aliveSinceCnt uint
 	keepAliveCnt  uint
+	grpcCnt       uint
 	status        platform.ServiceStatus
 	ticker        *time.Ticker
 }
@@ -31,6 +33,7 @@ func NewFibHandler(timeout ...uint) *FibHandler {
 	keepAliveTicker := time.NewTicker(time.Second)
 	handler := &FibHandler{timeout: defaultTimeout,
 		aliveSince: time.Now().Unix(),
+		offline:    true,
 		status:     s,
 		ticker:     keepAliveTicker}
 	go handler.keepAlive()
@@ -43,10 +46,25 @@ func (fh *FibHandler) keepAlive() {
 			continue
 		}
 		fh.counter++
+		fh.grpcCnt++
+		if fh.grpcCnt > 5 {
+			fh.grpcCnt=0
+			ctx_with_token, cancel = sdk.CtxWithToken(grpcSession.Token, time.Second*2)
+			mHealthCheckResponse, err := srcHealth.Check(ctx_with_token, &t_openr.HealthCheckRequest{Service: "t_openr.RouteStream"})
+			if err == nil {
+				fmt.Println("healcheck success:", mHealthCheckResponse)
+			}else{
+				fmt.Println("healcheck error:", err)
+			} 
+			cancel()
+		}		
 		if fh.counter > fh.timeout {
 			//del route if exist
 			log.Println("keep alive timer expired, cleaning route")
 			fh.offline = true
+			cancel()
+			grpcSession.Close()
+			fmt.Println("close session")
 		}
 	}
 }
@@ -75,7 +93,7 @@ func writeRoutesTxt(data string) {
 //  - Route
 func (fh *FibHandler) AddUnicastRoute(clientId int16, route *ipprefix.UnicastRoute) (err error) {
 	fmt.Printf("AddUnicastRoute\n  client: %v\n  route: %v\n", clientId, route)
-
+	fh.online()
 	var mTRouteMsg t_openr.TRouteMsg
 	var typeIp t_openr.TAddrType
 	var preIp string = ""
@@ -141,7 +159,7 @@ func (fh *FibHandler) AddUnicastRoute(clientId int16, route *ipprefix.UnicastRou
 //  - Prefix
 func (fh *FibHandler) DeleteUnicastRoute(clientId int16, prefix *ipprefix.IpPrefix) (err error) {
 	fmt.Printf("DeleteUnicastRoute\n  client: %v\n  prefix: %v\n", clientId, prefix)
-
+	fh.online()
 	routeLen := len(prefix.PrefixAddress.Addr)
 
 	prefixLength := prefix.PrefixLength
@@ -196,7 +214,7 @@ func (fh *FibHandler) DeleteUnicastRoute(clientId int16, prefix *ipprefix.IpPref
 //  - Routes
 func (fh *FibHandler) AddUnicastRoutes(clientId int16, routes []*ipprefix.UnicastRoute) (err error) {
 	fmt.Printf("AddUnicastRoutes\n  client: %v, route count: %v\n  routes: %v\n", clientId, len(routes), routes)
-
+	fh.online()
 	numRoutes := len(routes)
 	var mTRouteMsg t_openr.TRouteMsg
 	var typeIp t_openr.TAddrType
@@ -272,7 +290,7 @@ func (fh *FibHandler) AddUnicastRoutes(clientId int16, routes []*ipprefix.Unicas
 func (fh *FibHandler) DeleteUnicastRoutes(clientId int16, prefixes []*ipprefix.IpPrefix) (err error) {
 	fmt.Printf("DeleteUnicastRoutes\n  client: %v, prefix count: %v\n  prefixes: %v\n",
 		clientId, len(prefixes), prefixes)
-
+	fh.online()
 	numRoutes := len(prefixes)
 	var mTRouteMsg t_openr.TRouteMsg
 	var data string = ""
@@ -383,11 +401,20 @@ func (fh *FibHandler) GetRouteTableByClient(clientId int16) (r []*ipprefix.Unica
 
 func (fh *FibHandler) online() {
 	if fh.offline {
-		fmt.Printf("LastAliveSinceCount: %v, LastPeriodicKeepAliveCount\n",
+		fmt.Printf("LastAliveSinceCount: %v, LastPeriodicKeepAliveCount%v\n",
 			fh.aliveSinceCnt, fh.keepAliveCnt)
 		fh.aliveSinceCnt = 0
 		fh.keepAliveCnt = 0
 		fh.offline = false
+		var err error
+		grpcSession, err = sdk.NewClient(address, port, username , password)
+		if err != nil {
+			log.Println("Failed to open session.")
+		}
+
+		srcTagent = t_openr.NewTAgentOperClient(grpcSession.Conn)
+		srcHealth = t_openr.NewHealthClient(grpcSession.Conn)
 	}
+
 	fh.counter = 0
 }
